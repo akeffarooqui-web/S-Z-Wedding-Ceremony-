@@ -19,10 +19,16 @@
   updateCountdown();setInterval(updateCountdown,1000);
   const observer = new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('in-view');observer.unobserve(entry.target);}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
   const nav=document.getElementById('nav'),menu=document.getElementById('menu-toggle');menu.addEventListener('click',()=>{const on=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(on));});nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{nav.classList.remove('open');menu.setAttribute('aria-expanded','false');}));
-  // Lightweight synthesized ambient tones; starts only after an explicit visitor click.
-  let audioCtx=null,oscillators=[],gain=null,musicOn=false;const musicBtn=document.getElementById('music-toggle');
-  function stopMusic(){if(gain){gain.gain.setTargetAtTime(0,audioCtx.currentTime,.2);setTimeout(()=>{oscillators.forEach(o=>{try{o.stop()}catch(e){}});oscillators=[];if(audioCtx){audioCtx.close();audioCtx=null;}gain=null;},700);}musicOn=false;musicBtn.setAttribute('aria-pressed','false');musicBtn.innerHTML='♫ <span>Music off</span>';}
-  function startMusic(){const AudioContext=window.AudioContext||window.webkitAudioContext;if(!AudioContext){musicBtn.innerHTML='♫ <span>Not supported</span>';return;}audioCtx=new AudioContext();gain=audioCtx.createGain();gain.gain.value=.018;gain.connect(audioCtx.destination);[220,329.63,440].forEach((freq,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=freq;g.gain.value=[.35,.22,.13][i];o.connect(g);g.connect(gain);o.start();oscillators.push(o);});musicOn=true;musicBtn.setAttribute('aria-pressed','true');musicBtn.innerHTML='♫ <span>Music on</span>';}
-  musicBtn.addEventListener('click',()=>musicOn?stopMusic():startMusic());
+  // Optional song player. Browsers require a visitor gesture before audio can play.
+  const musicBtn=document.getElementById('music-toggle');
+  const weddingAudio=document.getElementById('wedding-audio');
+  let musicOn=false;
+  musicBtn.addEventListener('click', async()=>{
+    if(!weddingAudio) return;
+    if(musicOn){weddingAudio.pause();musicOn=false;musicBtn.setAttribute('aria-pressed','false');musicBtn.innerHTML='♫ <span>Play music</span>';return;}
+    try { await weddingAudio.play(); musicOn=true; musicBtn.setAttribute('aria-pressed','true'); musicBtn.innerHTML='♫ <span>Pause music</span>'; }
+    catch(e){ musicBtn.innerHTML='♫ <span>Add MP3 first</span>'; }
+  });
+  weddingAudio?.addEventListener('ended',()=>{musicOn=false;musicBtn.setAttribute('aria-pressed','false');musicBtn.innerHTML='♫ <span>Play music</span>';});
   document.getElementById('rsvp-form').addEventListener('submit',e=>{e.preventDefault();const name=document.getElementById('guest-name').value.trim(),attendance=document.getElementById('attendance').value,note=document.getElementById('guest-note').value.trim();const subject=encodeURIComponent('Wedding RSVP — Saba Mahek & Mohammed Zaid');const body=encodeURIComponent(`Name: ${name}\nResponse: ${attendance}\nNote: ${note||'—'}\n\nWedding date: 29 November 2026`);document.getElementById('rsvp-status').textContent='Your email app should open with your RSVP details ready to send.';window.location.href=`mailto:?subject=${subject}&body=${body}`;});
 })();
